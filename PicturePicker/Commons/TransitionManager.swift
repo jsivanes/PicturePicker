@@ -17,16 +17,26 @@ class TransitionManager: NSObject {
   var transitionType: TransitionType = .present
   let transitionDuration = 0.8
 
-  lazy var blurEffectView: UIVisualEffectView = {
+  private lazy var blurEffectView: UIVisualEffectView = {
     let blurEffet = UIBlurEffect(style: .light)
     let visualEffectView = UIVisualEffectView(effect: blurEffet)
     return visualEffectView
+  }()
+
+  private lazy var dimmingView: UIView = {
+    let view = UIView()
+    view.backgroundColor = .white
+    return view
   }()
 
   private func addBackgroundViews(to containerView: UIView) {
     blurEffectView.frame = containerView.frame
     blurEffectView.alpha = transitionType.next.blurAlpa
     containerView.addSubview(blurEffectView)
+
+    dimmingView.frame = containerView.frame
+    dimmingView.alpha = transitionType.next.blurAlpa
+    containerView.addSubview(dimmingView)
   }
 
   private func createPictureView(todayCell: TodayCell) -> UIView? {
@@ -57,19 +67,13 @@ extension TransitionManager: UIViewControllerAnimatedTransitioning {
     let containerView = transitionContext.containerView
     containerView.subviews.forEach({ $0.removeFromSuperview() })
 
-    if transitionType == .present {
-      addBackgroundViews(to: containerView)
-    }
+    addBackgroundViews(to: containerView)
 
     let fromView = transitionContext.viewController(forKey: .from)
     let toView = transitionContext.viewController(forKey: .to)
 
-
-
-
     guard let todayCell = (transitionType == .present) ? fetchTodayCell(from: fromView) : fetchTodayCell(from: toView),
           let pictureView = createPictureView(todayCell: todayCell) else { return }
-
 
     containerView.addSubview(pictureView)
     todayCell.isHidden = true
@@ -79,11 +83,13 @@ extension TransitionManager: UIViewControllerAnimatedTransitioning {
       containerView.addSubview(detailView.view)
 
       let safeAreaTop = detailView.view.safeAreaInsets.top
-      let leadingInset = detailView.calculateLeadingAndTrainlingInset(for: detailView.view.frame.width)
+      let availableWidth = detailView.view.frame.width
+      let cellWidthSize = detailView.cellWidthSize(for: availableWidth)
+      let leadingInset = detailView.leadingAndTrainlingInset(for: availableWidth)
       let detailsPictureFrame = CGRect(x: leadingInset,
                                        y: safeAreaTop,
-                                       width: detailView.cellWidthSize,
-                                       height: detailView.cellWidthSize)
+                                       width: cellWidthSize,
+                                       height: cellWidthSize)
       detailView.view.isHidden = true
       moveAndConvertTo(pictureView: pictureView, containerView: containerView, toFrame: detailsPictureFrame) {
         detailView.view.isHidden = false
@@ -96,11 +102,13 @@ extension TransitionManager: UIViewControllerAnimatedTransitioning {
       let detailView = fromView as! DetailsViewController
       detailView.view.isHidden = true
       let safeAreaTop = detailView.view.safeAreaInsets.top
-      let leadingInset = detailView.calculateLeadingAndTrainlingInset(for: detailView.view.frame.width)
+      let availableWidth = detailView.view.frame.width
+      let cellWidthSize = detailView.cellWidthSize(for: availableWidth)
+      let leadingInset = detailView.leadingAndTrainlingInset(for: availableWidth)
       let detailsPictureFrame = CGRect(x: leadingInset,
                                        y: safeAreaTop,
-                                       width: detailView.cellWidthSize,
-                                       height: detailView.cellWidthSize)
+                                       width: cellWidthSize,
+                                       height: cellWidthSize)
       pictureView.frame = detailsPictureFrame
 
       let absoluteViewFrame = todayCell.photoView.convert(todayCell.photoView.frame, to: nil)

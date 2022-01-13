@@ -17,7 +17,8 @@ final class DetailsViewController: UIViewController {
   private var dataSource: UICollectionViewDiffableDataSource<Int, DetailsScene.Item>?
   private var viewModel: DetailsScene.ViewModel?
 
-  let cellWidthSize: CGFloat = 180
+  let numberOfItem: CGFloat = 2
+  let interItemSpacing: CGFloat = 8
 
   private lazy var closeButton: UIButton = {
     let button = UIButton()
@@ -59,10 +60,13 @@ final class DetailsViewController: UIViewController {
     viewController.router = router
   }
 
-  func calculateLeadingAndTrainlingInset(for availableWidth: CGFloat) -> CGFloat {
-    let numberOfItem = (availableWidth / cellWidthSize).rounded()
-    let remainingWidth = availableWidth - cellWidthSize * numberOfItem
-    return max(2, (remainingWidth / 2.0) - (8 * (numberOfItem - 1)))
+  func cellWidthSize(for availableWidth: CGFloat) -> CGFloat {
+    (availableWidth / numberOfItem) - interItemSpacing
+  }
+
+  func leadingAndTrainlingInset(for availableWidth: CGFloat) -> CGFloat {
+    let remainingWidth = availableWidth - cellWidthSize(for: availableWidth) * numberOfItem
+    return max(2, (remainingWidth / 2.0) - interItemSpacing)
   }
 
   private func setupInterface() {
@@ -110,12 +114,16 @@ extension DetailsViewController {
   private func createCompositionalLayout() -> UICollectionViewCompositionalLayout {
     return UICollectionViewCompositionalLayout { [weak self] section, layoutEnvironment in
       guard let self = self else { return nil }
-      let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(self.cellWidthSize),heightDimension: .fractionalHeight(1.0))
+      let availableWith = layoutEnvironment.container.contentSize.width
+      let cellWidthSize = self.cellWidthSize(for: availableWith)
+      let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(cellWidthSize),
+                                            heightDimension: .fractionalHeight(1.0))
       let item = NSCollectionLayoutItem(layoutSize: itemSize)
-      let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),heightDimension: .absolute(self.cellWidthSize))
+      let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0),
+                                             heightDimension: .absolute(cellWidthSize))
       let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
-      group.interItemSpacing = .fixed(8)
-      let leadingAndTrailingInset = self.calculateLeadingAndTrainlingInset(for: layoutEnvironment.container.contentSize.width)
+      group.interItemSpacing = .fixed(self.interItemSpacing)
+      let leadingAndTrailingInset = self.leadingAndTrainlingInset(for: availableWith)
       group.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: leadingAndTrailingInset, bottom: 0, trailing: leadingAndTrailingInset)
 
       let section = NSCollectionLayoutSection(group: group)
